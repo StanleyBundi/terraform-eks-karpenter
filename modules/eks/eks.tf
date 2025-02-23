@@ -1,10 +1,10 @@
 # EKS Cluster Module: Deploys an Amazon EKS cluster
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.24.0"
+  version = "20.33.1"
 
   cluster_name    = var.cluster_name
-  cluster_version = "1.30"
+  cluster_version = "1.32"
 
     # Restrict public API access to trusted IPs 
   cluster_endpoint_public_access  = true

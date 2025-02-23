@@ -17,6 +17,7 @@ module "eks" {
   subnet_ids   = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.intra_subnets
   # region       = var.region
+
   providers = {
     aws = aws
   }
@@ -24,8 +25,8 @@ module "eks" {
 
 # Karpenter Module - Enables autoscaling for Kubernetes workloads
 module "karpenter" {
-  source       = "./modules/karpenter"
-  cluster_name = var.cluster_name
+  source               = "./modules/karpenter"
+  cluster_name         = var.cluster_name
 
   providers = {
     aws      = aws
@@ -47,23 +48,8 @@ module "helm" {
   region                    = var.region
 
   providers = {
-    helm    = helm
+    helm    = helm.karpenter
     aws     = aws.virginia
-    kubectl = kubectl
-  }
-}
-
-# Sample Workload Deployment - Deploys a minimal container for testing 
-module "deployment" {
-  source          = "./modules/deployment"
-  deployment_name = "inflate"
-  replicas        = 2
-  image          = "public.ecr.aws/eks-distro/kubernetes/pause:3.7"
-  node_selector = {
-    "karpenter.k8s.aws/instance-architecture" = "arm64"
-  }
-
-  providers = {
     kubectl = kubectl
   }
 }

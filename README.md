@@ -18,6 +18,7 @@ terraform-eks-karpenter/
 ├── variables.tf           # Variable definitions
 ├── terraform.tfvars       # Terraform variable values
 ├── backend.tf             # Backend configuration
+├── outputs.tf             # Terraform output definitions 
 └── README.md              # Project documentation
 ```
 

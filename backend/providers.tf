@@ -1,5 +1,4 @@
-# backend Providers
-
+# This configuration sets up the AWS provider for Terraform and specifies the required provider version.
 provider "aws" {
     region = var.region
     

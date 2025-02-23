@@ -1,10 +1,7 @@
+# This configuration creates an S3 bucket for Terraform state storage with versioning and AES256 encryption.
 resource "aws_s3_bucket" "terraform_state" {
   bucket        = var.s3_bucket_name
   force_destroy = true
-
-  versioning {
-    enabled = true
-  }
 
   lifecycle {
     prevent_destroy = false
@@ -15,6 +12,16 @@ resource "aws_s3_bucket" "terraform_state" {
   }
 }
 
+# Separate resource for managing S3 bucket versioning
+resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
+  bucket = aws_s3_bucket.terraform_state.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Separate resource for managing S3 bucket encryption
 resource "aws_s3_bucket_server_side_encryption_configuration" "sse_config" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -25,6 +32,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "sse_config" {
   }
 }
 
+
+# This configuration creates a DynamoDB table for Terraform state locking to prevent concurrent state modifications.
 resource "aws_dynamodb_table" "terraform_locks" {
   name         = var.dynamodb_table_name
   billing_mode = "PAY_PER_REQUEST"

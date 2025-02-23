@@ -5,4 +5,10 @@ region         = "eu-west-2"
 cluster_name = "stanley-opsfleet-task"
 
 # karpenter IAM role
-karpenter_iam_role = "arn:aws:iam::123456789012:role/KarpenterNodeRole"
+karpenter_iam_role = "xxxxxxxxx"
+
+# Cluster Endpoint
+cluster_endpoint  = "xxxxxxxxx"
+
+# Service Account
+service_account = "karpenter"

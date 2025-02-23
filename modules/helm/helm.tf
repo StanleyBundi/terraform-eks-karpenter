@@ -1,11 +1,13 @@
 # Deploys Karpenter using Helm
 resource "helm_release" "karpenter" {
+  # provider = helm.karpenter 
   namespace  = "kube-system"
   name       = "karpenter"
-  repository = "https://charts.karpenter.sh"
+  repository = "oci://public.ecr.aws/karpenter"
   chart      = "karpenter"
-  version    = "0.16.3"
-  wait       = true  # Ensures Helm waits for readiness
+  #chart     = "C:/Users/user/karpenter-1.1.2.tgz"
+  version    = "1.1.2"
+  wait       = false  # Ensures Helm waits for readiness
 
   values = [
     <<-EOT
@@ -19,19 +21,28 @@ resource "helm_release" "karpenter" {
       - key: "CriticalAddonsOnly"
         operator: "Exists"
         effect: "NoSchedule"
+    extraEnv:
+      - name: CLUSTER_NAME
+        value: ${var.cluster_name}
+      - name: CLUSTER_ENDPOINT
+        value: ${var.cluster_endpoint}
     EOT
   ]
 }
 
+
 # Defines Karpenter EC2NodeClass for dynamic provisioning
 resource "kubectl_manifest" "karpenter_node_class" {
   yaml_body = <<-YAML
-    apiVersion: karpenter.k8s.aws/v1beta1
+    apiVersion: karpenter.k8s.aws/v1
     kind: EC2NodeClass
     metadata:
       name: default
     spec:
       amiFamily: AL2023  # Uses Amazon Linux 2023 as the AMI family
+      amiSelectorTerms:
+        - id: "ami-00710ab5544b60cf7"  # AL2023 AMI for x86_64
+        - id: "ami-0064b237c740f7daf"  # AL2023 AMI for ARM64
       role: ${var.node_iam_role_name}  # Specifies the IAM role for Karpenter-managed nodes
       subnetSelectorTerms:
         - tags:
@@ -44,14 +55,14 @@ resource "kubectl_manifest" "karpenter_node_class" {
   YAML
 
   depends_on = [
-    helm_release.karpenter   # Ensures Karpenter is installed before applying node class
-  ]
+    helm_release.karpenter   # Ensures Karpenter is installed before applying node clas
+    ]
 }
 
 # Karpenter Node Pool with x86 and Graviton Support
 resource "kubectl_manifest" "karpenter_node_pool" {
   yaml_body = <<-YAML
-    apiVersion: karpenter.sh/v1beta1
+    apiVersion: karpenter.sh/v1
     kind: NodePool
     metadata:
       name: default
@@ -60,6 +71,8 @@ resource "kubectl_manifest" "karpenter_node_pool" {
         spec:
           nodeClassRef:    
             name: default   # References the previously defined EC2NodeClass
+            group: karpenter.k8s.aws
+            kind: EC2NodeClass
           requirements:
             - key: "karpenter.k8s.aws/instance-category"
               operator: In
@@ -67,13 +80,13 @@ resource "kubectl_manifest" "karpenter_node_pool" {
             - key: "karpenter.k8s.aws/instance-cpu"
               operator: In
               values: ["4", "8", "16", "32"]  # Supports different CPU configurations
-            - key: "karpenter.k8s.aws/instance-architecture"
+            - key: "kubernetes.io/arch"
               operator: In
               values: ["amd64", "arm64"]  # Supports both x86 (amd64) and ARM (arm64) instances
             - key: "karpenter.k8s.aws/instance-generation"
               operator: Gt
               values: ["2"] # Ensures only newer-generation instances are selected
-            - key: "karpenter.k8s.aws/capacity-type"
+            - key: "karpenter.sh/capacity-type"
               operator: In
               values: ["spot"]  # Uses Spot instances for cost efficiency
             - key: "topology.kubernetes.io/zone"   # Multi-AZ support
@@ -90,8 +103,10 @@ resource "kubectl_manifest" "karpenter_node_pool" {
 
       # Configures node consolidation to reduce costs by removing empty nodes
       disruption:
-        consolidationPolicy: WWhenUnderutilized # Only consolidates when nodes are empty
+        consolidationPolicy: WhenEmptyOrUnderutilized # Only consolidates when nodes are empty
         consolidateAfter: 60s # Waits 30 seconds before consolidating underutilized nodes
   YAML
   depends_on = [kubectl_manifest.karpenter_node_class]  # Ensures NodeClass is created before NodePool
 }
+
+

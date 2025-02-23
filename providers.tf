@@ -11,7 +11,7 @@ terraform {
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.9"
+      version = "3.0.0-pre1"
     }
   }
 }
@@ -29,17 +29,19 @@ provider "aws" {
 
 # Helm provider for managing Helm charts
 provider "helm" {
-  kubernetes {
+  alias      = "karpenter"
+  kubernetes = {
     host                   = module.eks.cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
 
-    exec {
-      api_version = "client.authentication.k8s.io/v1" 
+    exec = {
+      api_version = "client.authentication.k8s.io/v1"
       command     = "aws"
       args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
     }
   }
 }
+
 
 # Kubectl provider for managing Kubernetes resources
 provider "kubectl" {
