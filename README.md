@@ -216,9 +216,8 @@ spec:
 - **Instructions**: [GPU Workload Scheduling](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/user-guide.html#gpu-sharing)
 
 ## Step 5: Install and Configure Karpenter
-Deploy and configure Karpenter to support GPU nodes.
-
-1. **Pull the Karpenter Helm Chart from the OCI-based registry**  
+Deploy Karpenter 
+ **Pull the Karpenter Helm Chart from the OCI-based registry**
    ```sh
    helm pull oci://public.ecr.aws/karpenter/karpenter --version <latest-version> --destination ~/karpenter-charts
    helm install karpenter ~/karpenter-charts/karpenter-<latest-version>.tgz --namespace kube-system --create-namespace
@@ -247,10 +246,12 @@ spec:
   securityGroupSelectorTerms:
     - tags:
         Name: "eks-cluster-sg"
-2. Create a NodePool to Support GPU Workloads
-The NodePool defines instance requirements.
+```
 
-yaml
+### 2. Create a `NodePool` to Support GPU Workloads
+The `NodePool` defines instance requirements.
+
+```yaml
 apiVersion: karpenter.k8s.aws/v1
 kind: NodePool
 metadata:
@@ -272,13 +273,14 @@ spec:
         - key: karpenter.k8s.aws/instance-category
           operator: In
           values: ["p"]
+```
 
-- **Instructions**: [NodeClasses](https://karpenter.sh/docs/concepts/nodeclasses/)
-- **Instructions**: [NodePools](https://karpenter.sh/docs/concepts/nodepools/)
+### Instructions:
+- **[NodeClasses Documentation](https://karpenter.sh/docs/concepts/nodeclasses/)**
+- **[NodePools Documentation](https://karpenter.sh/docs/concepts/nodepools/)**
 
 ## Conclusion
-
-By following these steps,and closely following instructions(official docs and github repos) under each step as well as utilizing the external references attached right at the bottom of this guide, you can enable GPU slicing on Amazon EKS clusters including the ones with the karpenter autoscaler and optimize your AI workloads cost.
+By following these steps and closely following official documentation and GitHub repositories listed under each step, as well as utilizing the external references attached at the bottom of this guide, you can enable GPU slicing on Amazon EKS clusters, including those with the Karpenter autoscaler, and optimize your AI workload costs.
 
 ## External References
 
@@ -286,3 +288,4 @@ By following these steps,and closely following instructions(official docs and gi
 - [NVIDIA MIG Documentation](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/index.html)
 - [Karpenter Best Practices](https://docs.aws.amazon.com/eks/latest/best-practices/karpenter.html)
 - [GitHub GPU Slicing Example](https://github.com/DiabloGCs/GPUSlicingEKS)
+
