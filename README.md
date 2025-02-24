@@ -62,6 +62,11 @@ If the backend does not exist, you must create it first:
    terraform apply -auto-approve
    ```
 
+    **Note:** If you encounter the following error, do not worry. Simply rerun the `terraform apply -auto-approve` command.
+
+    │ Error: creating AWS EKS (Elastic Kubernetes) Pod Identity Association (<unknown>): operation error EKS: CreatePodIdentityAssociation, https response error StatusCode: 404, RequestID: 6ec1932b-7d83-4980-9d28-1c6eacc53215, ResourceNotFoundException: No cluster found for name: stanley-opsfleet-task. │ │ with module.karpenter.module.karpenter.aws_eks_pod_identity_association.karpenter[0], │ on .terraform\modules\karpenter.karpenter\modules\karpenter\main.tf line 121, in resource "aws_eks_pod_identity_association" "karpenter":
+    │ 121: resource "aws_eks_pod_identity_association" "karpenter" { │ │ operation error EKS: CreatePodIdentityAssociation, https response error StatusCode: 404, RequestID: 6ec1932b-7d83-4980-9d28-1c6eacc53215, │ ResourceNotFoundException: No cluster found for name: stanley-opsfleet-task.
+
 ### Step 4: Configure kubectl
 1. Retrieve the EKS cluster name:
    ```sh
@@ -209,32 +214,65 @@ spec:
 - **Instructions**: [GPU Workload Scheduling](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/user-guide.html#gpu-sharing)
 
 ## Step 5: Install and Configure Karpenter
-Deploy Karpenter and configure provisioners to support GPU nodes.
+Deploy and configure Karpenter to support GPU nodes.
 
-```sh
-helm repo add karpenter https://charts.karpenter.sh/
-helm install karpenter karpenter/karpenter --namespace karpenter --create-namespace
-```
+1. **Pull the Karpenter Helm Chart from the OCI-based registry**  
+   ```sh
+   helm pull oci://public.ecr.aws/karpenter/karpenter --version <latest-version> --destination ~/karpenter-charts
+   helm install karpenter ~/karpenter-charts/karpenter-<latest-version>.tgz --namespace kube-system --create-namespace
+  ```
 
 - **Instructions**: [Karpenter Setup](https://karpenter.sh/docs/getting-started/)
 
-## Step 6: Define Provisioners for GPU Nodes
+## Step 6: Define NodeClass and NodePool for GPU Nodes
 
-Create provisioners to specify instance requirements for GPU workloads.
+Karpenter now uses `NodeClass` and `NodePool` instead of `Provisioners`. You need to define these to support GPU workloads.
+
+### 1. Create a `NodeClass` for GPU Instances
+The `NodeClass` defines how GPU nodes should be provisioned.
 
 ```yaml
-apiVersion: karpenter.k8s.aws/v1alpha5
-kind: Provisioner
+apiVersion: karpenter.k8s.aws/v1
+kind: NodeClass
 metadata:
-  name: gpu-provisioner
+  name: gpu-nodeclass
 spec:
-  requirements:
-    - key: node.kubernetes.io/instance-type
-      operator: In
-      values: ["p4d.24xlarge"]
-```
+  amiFamily: AL2
+  role: "KarpenterNodeRole"
+  subnetSelectorTerms:
+    - tags:
+        Name: "eks-cluster-subnet"
+  securityGroupSelectorTerms:
+    - tags:
+        Name: "eks-cluster-sg"
+2. Create a NodePool to Support GPU Workloads
+The NodePool defines instance requirements.
 
-- **Instructions**: [Karpenter GPU Provisioning](https://karpenter.sh/docs/provisioning-node/)
+yaml
+apiVersion: karpenter.k8s.aws/v1
+kind: NodePool
+metadata:
+  name: gpu-nodepool
+spec:
+  limits:
+    cpu: "1000"
+    memory: "2000Gi"
+  disruptions:
+    consolidationPolicy: WhenEmpty
+  template:
+    spec:
+      nodeClassRef:
+        name: gpu-nodeclass
+      requirements:
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values: ["p4d.24xlarge"]
+        - key: karpenter.k8s.aws/instance-category
+          operator: In
+          values: ["p"]
+
+- **Instructions**: [NodeClasses](https://karpenter.sh/docs/concepts/nodeclasses/)
+- **Instructions**: [NodePools](https://karpenter.sh/docs/concepts/nodepools/)
 
 ## Conclusion
 
