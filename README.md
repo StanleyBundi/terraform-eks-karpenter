@@ -144,12 +144,16 @@ Ensure that:
 - `arm64-test` runs on an `arm64` (Graviton) node.
 
 ## Cleanup
-To destroy all resources:
+
+### Step 1: Destroy the Entire Infrastructure
+To destroy all resources from the root directory, run:
 ```sh
 terraform destroy -auto-approve
-```
-
----
+Step 2: Destroy the Backend
+Navigate to the backend/ directory and destroy it separately:
+```sh
+cd backend
+terraform destroy -auto-approve
 
 
 
