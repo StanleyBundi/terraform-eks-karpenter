@@ -62,7 +62,7 @@ If the backend does not exist, you must create it first:
    terraform apply -auto-approve
    ```
 
-    **Note:** If you encounter the following error, do not worry. Simply rerun the `terraform apply -auto-approve` command.
+    **Note:** If you encounter the following error related to the Pod Identity Association Simply rerun the `terraform apply -auto-approve` command to troubleshoot.
 
     │ Error: creating AWS EKS (Elastic Kubernetes) Pod Identity Association (<unknown>): operation error EKS: CreatePodIdentityAssociation, https response error StatusCode: 404, RequestID: 6ec1932b-7d83-4980-9d28-1c6eacc53215, ResourceNotFoundException: No cluster found for name: stanley-opsfleet-task. │ │ with module.karpenter.module.karpenter.aws_eks_pod_identity_association.karpenter[0], │ on .terraform\modules\karpenter.karpenter\modules\karpenter\main.tf line 121, in resource "aws_eks_pod_identity_association" "karpenter":
     │ 121: resource "aws_eks_pod_identity_association" "karpenter" { │ │ operation error EKS: CreatePodIdentityAssociation, https response error StatusCode: 404, RequestID: 6ec1932b-7d83-4980-9d28-1c6eacc53215, │ ResourceNotFoundException: No cluster found for name: stanley-opsfleet-task.
